@@ -18,8 +18,12 @@ namespace QuoTra.DAO
             // Windows版
             // connectionString = @"Data Source=localhost\sqlexpress;Initial Catalog=RegimenCloudDB;User ID=azrRegimenUser;Password=ke9T5mD2ya5#;";
             // Linux版
-            connectionString = @"Data Source=localhost;Initial Catalog=ERP_DB_UTC;User ID=testuser;Password=testuser;TrustServerCertificate=Yes";
-#endif      
+            //connectionString = "Server=VMDEVELOP\\SQL2016;Database=ERP_DB_UTC;Integrated Security=True;TrustServerCertificate=Yes";
+            // 本番　検証環境
+            //connectionString = @"Server=tcp:ueno-thailand.database.windows.net,1433;Initial Catalog=ERP_DB_UTC_Try;Persist Security Info=True;User ID=ERP_QuoTra;Password=Zq4MHXRhzcDtPQWyLSuA6m9Jvi3SLTcFZxPeecK3NCTrdEHc;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=15;Max Pool Size=600;MultipleActiveResultSets=True";
+            // 本番環境
+            connectionString = @"Server=tcp:ueno-thailand.database.windows.net,1433;Initial Catalog=ERP_DB_UTC;Persist Security Info=True;User ID=ERP_QuoTra;Password=Zq4MHXRhzcDtPQWyLSuA6m9Jvi3SLTcFZxPeecK3NCTrdEHc;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=15;Max Pool Size=600;MultipleActiveResultSets=True";
+#endif
             this.Open();
 
         }
@@ -157,34 +161,35 @@ namespace QuoTra.DAO
             int rc = retryCount;
             while (rc > 0)
             {
-                using (SqlDataAdapter adapter = new SqlDataAdapter())
+                try
                 {
-                    try
+                    command.CommandTimeout = 300;
+                    command.Connection = conn;
+                    if (IsTransaction()) command.Transaction = this.transaction;
+
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        command.CommandTimeout = 300;
-                        adapter.SelectCommand = command;
-                        command.Connection = conn;
-                        if (IsTransaction()) command.Transaction = this.transaction;
-                        adapter.Fill(dt);
-                        break;
+                        dt.Load(reader);
                     }
-                    catch (SqlException e)
+                    break;
+                }
+                catch (SqlException e)
+                {
+                    if (e.Number == -2)
                     {
-                        if (e.Number == -2)
-                        {
-                            rc--;
-                            Thread.Sleep(3000);
-                        }
-                        else throw;
+                        rc--;
+                        Thread.Sleep(3000);
                     }
-                    catch (Exception)
-                    {
-                        throw;
-                    }
+                    else throw;
+                }
+                catch (Exception)
+                {
+                    throw;
                 }
             }
             return dt;
         }
+
 
         /// <summary>
         /// 更新系SQLを実行します。

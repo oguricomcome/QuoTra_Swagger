@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using QuoTra.DAO;
 using QuoTra.Models;
 using System.Data;
@@ -23,7 +24,7 @@ namespace QuoTra.Controllers
         [HttpPost]
         public async Task<IActionResult> Challenge([FromBody] ChallengeUser user)
         {
-             return SendIV2(user);
+            return SendIV2(user);
         }
 
         [HttpPost]
@@ -35,40 +36,75 @@ namespace QuoTra.Controllers
 
         private ActionResult SendIV2(ChallengeUser user)
         {
-            if (!string.IsNullOrEmpty(user.deviceId) && !string.IsNullOrEmpty(user.uuid))
+
+            var baseQuery = new BaseQuery();
+            using (SqlConnection cn = new SqlConnection(baseQuery.connectionString))
             {
-                string iv2 = CRYPTO.CRYPTO.getIV();
-
-                string pepperTxt = CRYPTO.CRYPTO.pepperTxt;
-                byte[] pepperBytes = Encoding.UTF8.GetBytes(pepperTxt);
-
-                byte[] hashBytesUUID = CRYPTO.CRYPTO.CreatePBKDF2Hash(user.uuid, pepperBytes);
-                byte[] hashBytesDevID = CRYPTO.CRYPTO.CreatePBKDF2Hash(user.deviceId, pepperBytes);
-                string hashTextUUID = Convert.ToBase64String(hashBytesUUID);
-                string hashTextDevID = Convert.ToBase64String(hashBytesDevID);
-
-                HashedRecordUser hashedRecordUser = new HashedRecordUser();
-                hashedRecordUser.uuidHash = hashTextUUID;
-                hashedRecordUser.deviceIdHash = hashTextDevID;
-                hashedRecordUser.appKeyIV2 = iv2;
-
-                int count = 0;
-
+                cn.Open();
+                Logger.WriteLog("INFO", "SendIV2 -開始　リクエスト");
                 try
                 {
-                    ApiQuery apidao = new ApiQuery();
-                    count = apidao.SetIV2(hashedRecordUser);
-                }
-                catch (Exception ex) 
-                {
-                    if (ex.Message == "対象のレコードが存在しませんでした") return Unauthorized(ex.Message);
-                    else return BadRequest(ex.Message);
-                }
+                    if (!string.IsNullOrEmpty(user.deviceId) && !string.IsNullOrEmpty(user.uuid))
+                    {
+                        string iv2 = CRYPTO.CRYPTO.getIV();
 
-                if (count == 1) return Ok(iv2);
-                else return BadRequest();
+                        string pepperTxt = CRYPTO.CRYPTO.pepperTxt;
+                        byte[] pepperBytes = Encoding.UTF8.GetBytes(pepperTxt);
+
+                        byte[] hashBytesUUID = CRYPTO.CRYPTO.CreatePBKDF2Hash(user.uuid, pepperBytes);
+                        byte[] hashBytesDevID = CRYPTO.CRYPTO.CreatePBKDF2Hash(user.deviceId, pepperBytes);
+                        string hashTextUUID = Convert.ToBase64String(hashBytesUUID);
+                        string hashTextDevID = Convert.ToBase64String(hashBytesDevID);
+
+                        HashedRecordUser hashedRecordUser = new HashedRecordUser();
+                        hashedRecordUser.uuidHash = hashTextUUID;
+                        hashedRecordUser.deviceIdHash = hashTextDevID;
+                        hashedRecordUser.appKeyIV2 = iv2;
+
+                        int count = 0;
+
+                        try
+                        {
+                            ApiQuery apidao = new ApiQuery(HttpContext, cn);
+                            count = apidao.SetIV2(hashedRecordUser);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.WriteLog("ERROR", "SendIV2 -エラー"+ ex.ToString());
+
+                            if (ex.Message == "対象のレコードが存在しませんでした") return Unauthorized(ex.Message);
+                            else return BadRequest(ex.Message);
+                        }
+
+                        if (count == 1)
+                        {
+                            Logger.WriteLog("INFO", "SendIV2 -完了");
+                            return Ok(iv2);
+
+                        }
+                        else
+                        {
+                            Logger.WriteLog("ERROR", "SendIV2 -エラー");
+                            return BadRequest();
+
+                        }
+                    }
+                    else
+                    {
+
+                        Logger.WriteLog("ERROR", "SendIV2 -エラー");
+                        return BadRequest();
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLog("ERROR", "SendIV2 -エラー" + ex.ToString());
+                    return BadRequest(ex);
+                }
             }
-            return BadRequest();
+
+
         }
 
     }

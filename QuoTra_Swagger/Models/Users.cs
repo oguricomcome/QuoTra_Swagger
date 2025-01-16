@@ -70,9 +70,14 @@ namespace QuoTra.Models
 
     }
 
+    public class UserDataList
+    {
+        public List<SendUserDetail> sendUserDetails { get; set; } = new List<SendUserDetail>();
+    }
+
 
     /// <summary>
-    /// T_QuoTra_UserData DB　書込み
+    /// QuoTra_T_UserProfiles DB　書込み
     /// </summary>
     public class SendUserDetail
     {
@@ -81,22 +86,8 @@ namespace QuoTra.Models
         public string nickName { get; set; }
         public string Icon { get; set; }
         public string roleId { get; set; }
+        public string mailAddress { get; set; }
+        public string salesArea { get; set; }
     }
-
-    /// <summary>
-    /// T_QuoTra_UserData DB　書込み
-    /// </summary>
-    public class UserDetail
-    {
-        public string uid { get; set; }
-        public string name { get; set; }
-        public string RoleId { get; set; }
-        public string Icon { get; set; }
-        public DateTime CreateDate { get; set; }
-        public string AccontCode { get; set; }
-        public string DeleteFlag { get; set; }
-
-    }
-
 
 }

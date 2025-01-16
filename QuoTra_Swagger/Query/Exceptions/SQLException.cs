@@ -22,7 +22,7 @@ namespace QuoTra.DAO.Exceptions
         /// 新しいインスタンスを初期化します。
         /// </summary>
         /// <param name="sql">例外が発生したSQL</param>
-        /// <param name="parameter">例外が発生したパラメータ</param>
+        /// <param name="parameter">例外が発生したパラメータ</param>e
         /// <param name="message">例外のメッセージ</param>
         /// <param name="ex">例外の詳細</param>
         public SQLException(string sql, SqlParameterCollection parameter, string message, Exception ex)
